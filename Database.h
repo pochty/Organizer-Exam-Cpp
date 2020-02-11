@@ -12,12 +12,14 @@ public:
 
 	Database();
 	~Database();
-	void InitDatabase();
-	void CreateTask(std::string Details, int State);
-	int RemoveTask(int id);
-	int UpdateTask(int id, std::string Details, int State);
-
+	void Init();
+	void Exec(const char* stmt);
+	void Exec(const char* stmt, int (*callback)(void*, int, char**, char**), void* obj);
+	int LastInsertRowid();
+	
 private:
 	const char* path;
+
+	static int LastInsertRowidCallback(void* data, int argc, char** argv, char** colName);
 };
 

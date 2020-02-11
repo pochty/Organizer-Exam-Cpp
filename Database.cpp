@@ -13,7 +13,7 @@ Database::~Database()
 	delete err;
 }
 
-void Database::InitDatabase()
+void Database::Init()
 {
 	const char* stmt = "\
 			CREATE TABLE IF NOT EXISTS Task(\
@@ -21,40 +21,35 @@ void Database::InitDatabase()
 				State INT\
 			);\
 			";
+	Exec(stmt);
+}
+
+void Database::Exec(const char* stmt)
+{
 	if (sqlite3_exec(dbHandle, stmt, NULL, NULL, &err)) throw std::exception(err);
 }
 
-void Database::CreateTask(std::string Details, int State)
+void Database::Exec(const char* stmt, int (*callback)(void*, int, char**, char**), void* obj)
 {
-	std::stringstream stmt;
-	stmt << "INSERT INTO Task (Details, State) \
-				VALUES ('" << Details << "', '" << State << "');";
-	if (sqlite3_exec(dbHandle, stmt.str().c_str(), NULL, NULL, &err)) throw std::exception(err);
+	if (sqlite3_exec(dbHandle, stmt, callback, obj, &err)) throw std::exception(err);
 }
 
-int Database::RemoveTask(int id)
+int Database::LastInsertRowid()
 {
-	if (id > 0)
-	{
-		std::stringstream stmt;
-		stmt << "DELETE FROM Task \
-					WHERE rowid = " << id << ";";
-		if (sqlite3_exec(dbHandle, stmt.str().c_str(), NULL, NULL, &err)) throw std::exception(err);
-		return 0;
-	}
-	return 1;
+	const char* stmt = "SELECT last_insert_rowid();";
+	//int* res = new(int){0};
+	int res = 0;
+	if (sqlite3_exec(dbHandle, stmt, LastInsertRowidCallback, &res, &err)) throw std::exception(err);
+	std::cout << std::endl << res << std::endl;
+	return res;
 }
 
-int Database::UpdateTask(int id, std::string Details, int State)
+int Database::LastInsertRowidCallback(void* data, int argc, char** argv, char** colName)
 {
-	if (id > 0)
-	{
-		std::stringstream stmt;
-		stmt << "UPDATE Task \
-					SET Details = '" << Details << "', State = '" << State << "'\
-					WHERE rowid = " << id << ";";
-		if (sqlite3_exec(dbHandle, stmt.str().c_str(), NULL, NULL, &err)) throw std::exception(err);
-		return 0;
-	}
-	return 1;
+	int* data_ = static_cast<int*>(data);
+	*data_ = std::atoi(argv[0]);
+	return 0;
 }
+
+
+
